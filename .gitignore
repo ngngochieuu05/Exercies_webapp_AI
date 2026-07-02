@@ -1,0 +1,27 @@
+# Gradle/Android
+.gradle/
+build/
+app/build/
+.idea/
+*.iml
+local.properties
+.cxx/
+capture/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.ipynb_checkpoints
+.venv/
+venv/
+env/
+
+# Data/DB
+src/backend/exercises.db
+model/*.pt
+model/*.onnx
+
+# Misc
+.DS_Store
