@@ -15,3 +15,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "FitApp"
 include(":app")
+include(":a2ui_android:android_compose")
+
