@@ -6,7 +6,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 
-DATABASE_URL = "sqlite:///D:/Python/Exercies_webapp_AI/backend/exercises.db"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATABASE_URL = f"sqlite:///{os.path.join(BASE_DIR, 'exercises.db').replace('\\', '/')}"
 
 Base = declarative_base()
 
@@ -44,7 +45,7 @@ def init_db():
         db.close()
         return
 
-    json_path = "D:/Python/Exercies_webapp_AI/backend/data/exercises.json"
+    json_path = os.path.join(BASE_DIR, "data", "exercises.json")
     if not os.path.exists(json_path):
         print(f"Dataset JSON not found at {json_path}!")
         db.close()

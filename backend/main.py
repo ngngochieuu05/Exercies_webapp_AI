@@ -145,3 +145,105 @@ def get_body_parts(db: Session = Depends(get_db)):
 def get_equipment_list(db: Session = Depends(get_db)):
     eqs = db.query(Exercise.equipment).distinct().all()
     return sorted([e[0] for e in eqs if e[0]])
+
+# Pydantic models for A2UI Chat
+from pydantic import BaseModel
+
+class ChatRequest(BaseModel):
+    message: str
+
+class ChatResponse(BaseModel):
+    reply: str
+    a2ui_messages: Optional[List[str]] = None
+
+@app.get("/a2ui/dashboard")
+def get_a2ui_dashboard():
+    # Return A2UI messages to construct a dynamic dashboard surface
+    return [
+        """{
+            "version": "v0.10",
+            "createSurface": {
+                "surfaceId": "dashboard_surface",
+                "catalogId": "https://a2ui.org/specification/v0_10/standard_catalog.json"
+            }
+        }""",
+        """{
+            "version": "v0.10",
+            "updateComponents": {
+                "surfaceId": "dashboard_surface",
+                "components": [
+                    {"id": "root", "component": "Column", "children": ["header", "stats_card", "divider", "tip_card"], "justify": "start", "align": "stretch"},
+                    {"id": "header", "component": "Text", "text": "Thống kê Thể thao Hôm nay", "variant": "h2"},
+                    {"id": "stats_card", "component": "Card", "child": "stats_content"},
+                    {"id": "stats_content", "component": "Column", "children": ["stats_title", "calories_text", "time_text"], "justify": "start", "align": "stretch"},
+                    {"id": "stats_title", "component": "Text", "text": "📊 Tiến độ hoạt động", "variant": "subtitle"},
+                    {"id": "calories_text", "component": "Text", "text": "🔥 Lượng calo tiêu thụ: 350 kcal", "variant": "body"},
+                    {"id": "time_text", "component": "Text", "text": "⏱️ Thời gian tập luyện: 45 phút", "variant": "body"},
+                    {"id": "divider", "component": "Divider"},
+                    {"id": "tip_card", "component": "Card", "child": "tip_content"},
+                    {"id": "tip_content", "component": "Column", "children": ["tip_title", "tip_text"], "justify": "start", "align": "stretch"},
+                    {"id": "tip_title", "component": "Text", "text": "💡 Lời khuyên tập luyện", "variant": "subtitle"},
+                    {"id": "tip_text", "component": "Text", "text": "Bạn đang thực hiện rất tốt! Hãy duy trì uống ít nhất 2 lít nước mỗi ngày và khởi động kỹ trước khi tập cardio nhé.", "variant": "body"}
+                ]
+            }
+        }"""
+    ]
+
+@app.post("/a2ui/chat", response_model=ChatResponse)
+def a2ui_chat(request: ChatRequest):
+    msg = request.message.lower()
+    
+    # Custom response based on keywords
+    if "bài tập" in msg or "gợi ý" in msg or "tập" in msg or "exercise" in msg:
+        reply = "Chào bạn! Đây là một bài tập rất phù hợp cho bạn hôm nay: Push-up (Hít đất). Bạn có thể xem chi tiết bài tập và nhấn nút hoàn thành bên dưới để tôi ghi nhận nhé!"
+        a2ui_messages = [
+            """{
+                "version": "v0.10",
+                "createSurface": {
+                    "surfaceId": "chat_surface",
+                    "catalogId": "https://a2ui.org/specification/v0_10/standard_catalog.json"
+                }
+            }""",
+            """{
+                "version": "v0.10",
+                "updateComponents": {
+                    "surfaceId": "chat_surface",
+                    "components": [
+                        {"id": "root", "component": "Card", "child": "exercise_card_content"},
+                        {"id": "exercise_card_content", "component": "Column", "children": ["ex_title", "ex_desc", "ex_action"], "justify": "start", "align": "stretch"},
+                        {"id": "ex_title", "component": "Text", "text": "Bài tập đề xuất: Push-Up (Hít đất)", "variant": "subtitle"},
+                        {"id": "ex_desc", "component": "Text", "text": "Tác động chính vào cơ ngực, vai và cơ tay sau. Thực hiện 3 hiệp, mỗi hiệp 12-15 lần.", "variant": "body"},
+                        {"id": "ex_action", "component": "Button", "text": "Báo cáo hoàn thành", "variant": "primary", "action": {"event": {"name": "complete_exercise", "context": {"exerciseId": "push_up"}}}}
+                    ]
+                }
+            }"""
+        ]
+    elif "mệt" in msg or "đau" in msg or "mỏi" in msg:
+        reply = "Tôi hiểu rồi. Bạn nên dành hôm nay để nghỉ ngơi (Rest Day) hoặc thực hiện các bài giãn cơ nhẹ nhàng. Tránh nâng tạ nặng nhé!"
+        a2ui_messages = [
+            """{
+                "version": "v0.10",
+                "createSurface": {
+                    "surfaceId": "chat_surface",
+                    "catalogId": "https://a2ui.org/specification/v0_10/standard_catalog.json"
+                }
+            }""",
+            """{
+                "version": "v0.10",
+                "updateComponents": {
+                    "surfaceId": "chat_surface",
+                    "components": [
+                        {"id": "root", "component": "Card", "child": "rest_card_content"},
+                        {"id": "rest_card_content", "component": "Column", "children": ["rest_title", "rest_desc"], "justify": "start", "align": "stretch"},
+                        {"id": "rest_title", "component": "Text", "text": "⚠️ Đề xuất: Ngày Nghỉ Ngơi (Rest Day)", "variant": "subtitle"},
+                        {"id": "rest_desc", "component": "Text", "text": "Hãy tập trung vào việc ngủ đủ giấc, ăn uống giàu protein và uống đủ nước để cơ bắp phục hồi tốt nhất.", "variant": "body"}
+                    ]
+                }
+            }"""
+        ]
+    else:
+        reply = "Chào bạn! Tôi là trợ lý AI Coach. Bạn có thể hỏi tôi về các bài tập, nhờ tôi đề xuất bài tập hôm nay, hoặc báo cáo tình trạng thể lực để nhận lời khuyên nhé!"
+        a2ui_messages = None
+        
+    return ChatResponse(reply=reply, a2ui_messages=a2ui_messages)
+
