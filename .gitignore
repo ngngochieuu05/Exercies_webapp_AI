@@ -54,5 +54,4 @@ replay_pid*
 
 # Kotlin Gradle plugin data
 .kotlin/
-android/a2ui_android/
 
