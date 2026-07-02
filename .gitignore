@@ -20,6 +20,7 @@ env/
 
 # Data/DB
 src/backend/exercises.db
+backend/exercises.db
 model/*.pt
 model/*.onnx
 
