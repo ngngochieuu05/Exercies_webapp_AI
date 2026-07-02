@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi import FastAPI, Depends, HTTPException, Query, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 import random
@@ -30,8 +30,43 @@ def get_db():
     finally:
         db.close()
 
+def translate_exercises_background(exercises_list: list):
+    from database import SessionLocal
+    import requests
+    db = SessionLocal()
+    try:
+        ex_ids = [ex.id for ex in exercises_list if not ex.instructions_vi and ex.instructions_en]
+        if not ex_ids:
+            return
+            
+        for ex_id in ex_ids:
+            ex = db.query(Exercise).filter(Exercise.id == ex_id).first()
+            if ex and not ex.instructions_vi:
+                try:
+                    url = "https://translate.googleapis.com/translate_a/single"
+                    params = {
+                        "client": "gtx",
+                        "sl": "en",
+                        "tl": "vi",
+                        "dt": "t",
+                        "q": ex.instructions_en
+                    }
+                    res = requests.get(url, params=params, timeout=4.0)
+                    if res.status_code == 200:
+                        parts = res.json()[0]
+                        translated = "".join([part[0] for part in parts if part and part[0]])
+                        if translated:
+                            ex.instructions_vi = translated.strip()
+                            db.commit()
+                except Exception as e:
+                    print(f"Background translation error for {ex_id}: {e}")
+    finally:
+        db.close()
+
+
 @app.get("/exercises")
 def get_exercises(
+    background_tasks: BackgroundTasks,
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
     category: Optional[str] = None,
@@ -62,6 +97,9 @@ def get_exercises(
     offset = (page - 1) * limit
     results = query.offset(offset).limit(limit).all()
     
+    # Translate in the background
+    background_tasks.add_task(translate_exercises_background, results)
+    
     # Format response
     data = []
     for ex in results:
@@ -77,7 +115,8 @@ def get_exercises(
                 "it": ex.instructions_it,
                 "tr": ex.instructions_tr,
                 "ru": ex.instructions_ru,
-                "zh": ex.instructions_zh
+                "zh": ex.instructions_zh,
+                "vi": ex.instructions_vi
             },
             "muscle_group": ex.muscle_group,
             "secondary_muscles": json.loads(ex.secondary_muscles) if ex.secondary_muscles else [],
@@ -96,19 +135,21 @@ def get_exercises(
     }
 
 @app.get("/exercises/random")
-def get_random_exercise(db: Session = Depends(get_db)):
+def get_random_exercise(background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     exercises_ids = [ex.id for ex in db.query(Exercise.id).all()]
     if not exercises_ids:
         raise HTTPException(status_code=404, detail="No exercises found")
     random_id = random.choice(exercises_ids)
-    return get_exercise_by_id(random_id, db)
+    return get_exercise_by_id(random_id, background_tasks, db)
 
 @app.get("/exercises/{exercise_id}")
-def get_exercise_by_id(exercise_id: str, db: Session = Depends(get_db)):
+def get_exercise_by_id(exercise_id: str, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     ex = db.query(Exercise).filter(Exercise.id == exercise_id).first()
     if not ex:
         raise HTTPException(status_code=404, detail="Exercise not found")
         
+    background_tasks.add_task(translate_exercises_background, [ex])
+    
     return {
         "id": ex.id,
         "name": ex.name,
@@ -121,7 +162,8 @@ def get_exercise_by_id(exercise_id: str, db: Session = Depends(get_db)):
             "it": ex.instructions_it,
             "tr": ex.instructions_tr,
             "ru": ex.instructions_ru,
-            "zh": ex.instructions_zh
+            "zh": ex.instructions_zh,
+            "vi": ex.instructions_vi
         },
         "muscle_group": ex.muscle_group,
         "secondary_muscles": json.loads(ex.secondary_muscles) if ex.secondary_muscles else [],

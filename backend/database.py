@@ -25,6 +25,7 @@ class Exercise(Base):
     instructions_tr = Column(Text)
     instructions_ru = Column(Text)
     instructions_zh = Column(Text)
+    instructions_vi = Column(Text)
     muscle_group = Column(String(100))
     secondary_muscles = Column(Text)  # Saved as JSON string
     target = Column(String(100))
@@ -64,6 +65,7 @@ def init_db():
         instr_tr = instr.get("tr", "")
         instr_ru = instr.get("ru", "")
         instr_zh = instr.get("zh", "")
+        instr_vi = instr.get("vi", "")
 
         # Handle created_at datetime conversion
         created_str = item.get("created_at")
@@ -89,6 +91,7 @@ def init_db():
             instructions_tr=instr_tr,
             instructions_ru=instr_ru,
             instructions_zh=instr_zh,
+            instructions_vi=instr_vi,
             muscle_group=item.get("muscle_group"),
             secondary_muscles=json.dumps(item.get("secondary_muscles", [])),
             target=item.get("target"),
