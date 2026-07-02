@@ -152,7 +152,7 @@ fun ExerciseCard(exercise: Exercise) {
                 )
                 Spacer(modifier = Modifier.height(6.dp))
 
-                val instructions = exercise.instructions["en"]
+                val instructions = exercise.instructions["vi"] ?: exercise.instructions["en"]
                 if (!instructions.isNullOrEmpty()) {
                     Text(
                         text = instructions,
