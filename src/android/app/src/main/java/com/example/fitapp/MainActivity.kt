@@ -5,8 +5,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.activity.viewModels
-import com.example.fitapp.ui.ExerciseListScreen
-import com.example.fitapp.ui.ExerciseViewModel
+import com.example.fitapp.ui.screens.ExerciseListScreen
+import com.example.fitapp.ui.viewmodel.ExerciseViewModel
 
 class MainActivity : ComponentActivity() {
     private val viewModel: ExerciseViewModel by viewModels()

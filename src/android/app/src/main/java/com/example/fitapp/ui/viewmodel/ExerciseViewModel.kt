@@ -1,14 +1,14 @@
-package com.example.fitapp.ui
+package com.example.fitapp.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.fitapp.data.model.Exercise
-import com.example.fitapp.data.network.ApiService
+import com.example.fitapp.data.repository.ExerciseRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-class ExerciseViewModel : ViewModel() {
+class ExerciseViewModel(private val repository: ExerciseRepository = ExerciseRepository()) : ViewModel() {
     private val _exercises = MutableStateFlow<List<Exercise>>(emptyList())
     val exercises: StateFlow<List<Exercise>> = _exercises
 
@@ -27,7 +27,7 @@ class ExerciseViewModel : ViewModel() {
             _isLoading.value = true
             _error.value = null
             try {
-                val response = ApiService.instance.getExercises(page = 1, limit = 50)
+                val response = repository.getExercises(page = 1, limit = 50)
                 _exercises.value = response.data
             } catch (e: Exception) {
                 _error.value = "Lỗi tải dữ liệu: ${e.localizedMessage}"
